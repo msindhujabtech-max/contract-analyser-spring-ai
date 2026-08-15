@@ -1,0 +1,45 @@
+#!/bin/sh
+# Maven Wrapper script
+set -euo pipefail
+
+MAVEN_WRAPPER_JAR=".mvn/wrapper/maven-wrapper.jar"
+MAVEN_WRAPPER_PROPERTIES=".mvn/wrapper/maven-wrapper.properties"
+
+# Determine the project base directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Get distribution URL
+if [ -f "$MAVEN_WRAPPER_PROPERTIES" ]; then
+    DIST_URL=$(grep 'distributionUrl' "$MAVEN_WRAPPER_PROPERTIES" | cut -d'=' -f2- | tr -d '\r')
+fi
+
+DIST_URL=${DIST_URL:-"https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.6/apache-maven-3.9.6-bin.zip"}
+
+# Maven installation directory
+MAVEN_HOME="$HOME/.m2/wrapper/dists/$(basename "$DIST_URL" .zip)"
+
+if [ ! -d "$MAVEN_HOME" ]; then
+    echo "Downloading Maven from $DIST_URL"
+    mkdir -p "$MAVEN_HOME"
+    if command -v curl > /dev/null; then
+        curl -fsSL "$DIST_URL" -o "$MAVEN_HOME/maven.zip"
+    elif command -v wget > /dev/null; then
+        wget -q "$DIST_URL" -O "$MAVEN_HOME/maven.zip"
+    else
+        echo "Error: curl or wget is required to download Maven" >&2
+        exit 1
+    fi
+    unzip -q "$MAVEN_HOME/maven.zip" -d "$MAVEN_HOME"
+    rm "$MAVEN_HOME/maven.zip"
+fi
+
+# Find Maven executable
+MVN_CMD=$(find "$MAVEN_HOME" -name "mvn" -path "*/bin/mvn" | head -1)
+
+if [ -z "$MVN_CMD" ]; then
+    echo "Error: Could not find Maven executable" >&2
+    exit 1
+fi
+
+exec "$MVN_CMD" "$@"

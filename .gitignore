@@ -1,0 +1,46 @@
+# === Java / Maven / Gradle ===
+target/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+*.class
+*.jar
+*.war
+*.ear
+
+# === IDE ===
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+out/
+
+# === Node / Frontend ===
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
+# === OS ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# === Docker ===
+docker-volumes/
+pgdata/
+
+# === Logs ===
+*.log
+logs/
+
+# === Misc ===
+*.bak
+*.tmp
