@@ -1,0 +1,107 @@
+# ============================================================
+# Ollama — Local AI Model Server
+# ============================================================
+
+# PersistentVolumeClaim: Stores downloaded AI models (4.5GB+)
+# Without this, models re-download every time the pod restarts
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-pvc
+  namespace: contract-analyzer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi            # Models need ~5GB, extra space for safety
+
+# Deployment: Manages Ollama pods
+# Using Deployment (not StatefulSet) because Ollama doesn't need stable identity
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: contract-analyzer
+spec:
+  replicas: 1                  # Single Ollama instance (LLMs are memory-heavy)
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      # Init container: Downloads models BEFORE the main container starts
+      initContainers:
+        - name: model-puller
+          image: ollama/ollama:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              ollama serve &
+              sleep 10
+              ollama pull nomic-embed-text
+              ollama pull llama3
+              kill %1
+          volumeMounts:
+            - name: ollama-storage
+              mountPath: /root/.ollama
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - containerPort: 11434
+          volumeMounts:
+            - name: ollama-storage
+              mountPath: /root/.ollama
+          # Readiness probe: Checks if Ollama API is responding
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          # Liveness probe: Restarts pod if Ollama crashes
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "4Gi"        # Llama3 needs ~4GB RAM minimum
+              cpu: "2000m"
+            limits:
+              memory: "8Gi"
+              cpu: "4000m"
+      volumes:
+        - name: ollama-storage
+          persistentVolumeClaim:
+            claimName: ollama-pvc
+
+# Service: Exposes Ollama within the cluster
+# Backend connects to "ollama-service:11434"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: contract-analyzer
+spec:
+  selector:
+    app: ollama
+  ports:
+    - port: 11434
+      targetPort: 11434

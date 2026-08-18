@@ -1,0 +1,77 @@
+# ============================================================
+# Backend — Spring Boot WebFlux API
+# ============================================================
+
+# Deployment: Manages backend pods with scaling and rolling updates
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: contract-analyzer
+  labels:
+    app: backend
+spec:
+  replicas: 2                    # Run 2 instances for high availability
+  selector:
+    matchLabels:
+      app: backend
+  # Rolling update strategy: Zero-downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1               # Create 1 extra pod during update
+      maxUnavailable: 0         # Never have 0 running pods (always available)
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          # In production, use your container registry image:
+          # image: gcr.io/contract-analyser-spring-ai-v1/contract-backend:latest
+          image: contract-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          # Load all config from the ConfigMap
+          envFrom:
+            - configMapRef:
+                name: app-config
+          # Readiness probe: K8s only sends traffic to healthy pods
+          readinessProbe:
+            httpGet:
+              path: /actuator/health    # Spring Boot health endpoint
+              port: 8080
+            initialDelaySeconds: 30     # Spring Boot needs time to start
+            periodSeconds: 10
+          # Liveness probe: Restarts pod if backend hangs
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+# Service: Internal load balancer for backend pods
+# Distributes requests across all healthy backend replicas
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: contract-analyzer
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080

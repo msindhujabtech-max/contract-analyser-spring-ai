@@ -1,0 +1,7 @@
+# Namespace: Isolates all contract-analyzer resources from other apps in the cluster
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: contract-analyzer
+  labels:
+    app: contract-analyzer

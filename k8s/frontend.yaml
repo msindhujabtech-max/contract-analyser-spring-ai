@@ -1,0 +1,69 @@
+# ============================================================
+# Frontend — React Application
+# ============================================================
+
+# Deployment: Manages frontend pods
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: contract-analyzer
+  labels:
+    app: frontend
+spec:
+  replicas: 2                    # 2 replicas for availability
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          # In production, use your container registry image:
+          # image: gcr.io/contract-analyser-spring-ai-v1/contract-frontend:latest
+          image: contract-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+
+# Service: Exposes frontend within the cluster
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: contract-analyzer
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 3000           # Maps port 80 → container port 3000

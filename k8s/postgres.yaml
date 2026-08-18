@@ -1,0 +1,143 @@
+# ============================================================
+# PostgreSQL with pgvector — Database Layer
+# ============================================================
+
+# PersistentVolumeClaim: Requests storage from the cluster
+# Data survives pod restarts and rescheduling
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: contract-analyzer
+spec:
+  accessModes:
+    - ReadWriteOnce          # Only one pod can write at a time
+  resources:
+    requests:
+      storage: 5Gi           # Request 5GB of disk space
+
+# StatefulSet: Used for databases because it provides:
+# 1. Stable network identity (pod name stays the same)
+# 2. Stable persistent storage (PVC stays attached)
+# 3. Ordered startup/shutdown
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: contract-analyzer
+spec:
+  serviceName: postgres-service    # Links to the headless service below
+  replicas: 1                      # Single database instance
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+            - name: init-sql
+              mountPath: /docker-entrypoint-initdb.d
+          # Readiness probe: K8s won't send traffic until DB is ready
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          # Liveness probe: K8s restarts the pod if DB becomes unresponsive
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+        - name: init-sql
+          configMap:
+            name: postgres-init-sql
+
+# ConfigMap containing the schema.sql initialization script
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: contract-analyzer
+data:
+  schema.sql: |
+    CREATE EXTENSION IF NOT EXISTS vector;
+
+    CREATE TABLE IF NOT EXISTS contracts (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        filename VARCHAR(512),
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS vector_store (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        content TEXT NOT NULL,
+        metadata JSONB DEFAULT '{}',
+        embedding vector(768)
+    );
+
+    CREATE INDEX IF NOT EXISTS vector_store_embedding_idx
+        ON vector_store USING hnsw (embedding vector_cosine_ops);
+
+    CREATE INDEX IF NOT EXISTS vector_store_metadata_idx
+        ON vector_store USING gin (metadata jsonb_path_ops);
+
+    INSERT INTO contracts (id, user_id, filename, uploaded_at)
+    VALUES (1, 101, 'sample-contract.pdf', CURRENT_TIMESTAMP)
+    ON CONFLICT (id) DO NOTHING;
+
+# Service: Provides a stable DNS name for the database
+# Other pods connect to "postgres-service:5432"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: contract-analyzer
+spec:
+  selector:
+    app: postgres              # Routes traffic to pods with label app=postgres
+  ports:
+    - port: 5432               # Service port (what other pods connect to)
+      targetPort: 5432         # Container port (where the pod listens)
+  clusterIP: None              # Headless service (for StatefulSet)

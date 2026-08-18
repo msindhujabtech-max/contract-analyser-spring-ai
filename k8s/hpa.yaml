@@ -1,0 +1,61 @@
+# ============================================================
+# Horizontal Pod Autoscaler (HPA) — Auto-Scaling
+# ============================================================
+# HPA automatically scales the number of pod replicas based on
+# CPU/memory usage. When load increases, it creates more pods.
+# When load decreases, it removes pods to save resources.
+#
+# Example flow:
+#   Normal traffic: 2 backend pods
+#   High traffic (CPU > 70%): HPA scales to 5 pods automatically
+#   Traffic drops: HPA scales back to 2 pods
+
+# Backend HPA: Scales between 2-10 replicas based on CPU
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: contract-analyzer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend              # Which Deployment to scale
+  minReplicas: 2               # Minimum pods (even at zero traffic)
+  maxReplicas: 10              # Maximum pods (cost protection)
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70   # Scale up when avg CPU > 70%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80   # Scale up when avg memory > 80%
+
+# Frontend HPA: Scales between 2-5 replicas
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+  namespace: contract-analyzer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
