@@ -1,6 +1,8 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY . .
+
+RUN apt-get update && apt-get install -y unzip curl && rm -rf /var/lib/apt/lists/*
 RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
