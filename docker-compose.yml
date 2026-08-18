@@ -59,6 +59,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://34.70.230.73:8000
     container_name: contract-frontend
     ports:
       - "3000:3000"
