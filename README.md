@@ -23,6 +23,16 @@ Services:
 - PostgreSQL: localhost:5432
 - Ollama: localhost:11434
 
+## Redeploy on Google Cloud
+
+Run the following command from Google Cloud Shell to pull the latest `main` branch, rebuild the Docker images, redeploy the existing VM stack, and verify Redis. It assumes the repository is cloned at `~/contract-analyser-spring-ai` on the VM.
+
+```bash
+gcloud compute ssh contract-analyzer-vm --zone us-central1-a --project contract-analyser-spring-ai-v1 --command='set -e; cd ~/contract-analyser-spring-ai; git pull origin main; docker compose up -d --build; docker compose ps; docker exec contract-redis redis-cli ping; docker exec contract-redis redis-cli CLIENT LIST; docker exec contract-redis redis-cli --scan --pattern "rag:response:*"; docker exec contract-redis redis-cli --scan --pattern "chat:history:*"'
+```
+
+Expected results include a `PONG` response from Redis and a `lib-name=Lettuce` connection in the Redis client list. The deployed frontend is available at http://34.70.230.73:3000.
+
 ## API Endpoints
 
 ### POST /api/upload
