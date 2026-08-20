@@ -8,6 +8,11 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
   ai:
     ollama:
       base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
@@ -25,3 +30,9 @@ spring:
         dimensions: 768
         schema-validation: false
         initialize-schema: false
+
+# Cache configuration
+app:
+  cache:
+    response-ttl-minutes: 60
+    rate-limit-requests-per-minute: 20

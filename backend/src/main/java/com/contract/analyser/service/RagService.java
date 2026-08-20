@@ -31,13 +31,53 @@ public class RagService {
 
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
+    private final CacheService cacheService;
+    private final ChatHistoryService chatHistoryService;
+    private final RateLimiterService rateLimiterService;
 
-    public RagService(ChatClient chatClient, VectorStore vectorStore) {
+    public RagService(ChatClient chatClient, VectorStore vectorStore,
+                      CacheService cacheService, ChatHistoryService chatHistoryService,
+                      RateLimiterService rateLimiterService) {
         this.chatClient = chatClient;
         this.vectorStore = vectorStore;
+        this.cacheService = cacheService;
+        this.chatHistoryService = chatHistoryService;
+        this.rateLimiterService = rateLimiterService;
     }
 
     public Flux<String> streamResponse(ChatRequest request) {
+        // Step 1: Check rate limit
+        return rateLimiterService.isAllowed(request.userId())
+                .flatMapMany(allowed -> {
+                    if (!allowed) {
+                        return Flux.just("Rate limit exceeded. Please wait a minute before asking again.");
+                    }
+
+                    // Step 2: Check cache for existing response
+                    String cacheKey = cacheService.generateCacheKey(
+                            request.contractId(), request.userId(), request.question());
+
+                    return cacheService.getCachedResponse(cacheKey)
+                            .flatMapMany(cachedResponse -> {
+                                // Cache HIT — return cached response immediately
+                                // Also save to chat history
+                                return chatHistoryService.saveMessage(
+                                        request.contractId(), request.userId(), "user", request.question())
+                                        .then(chatHistoryService.saveMessage(
+                                                request.contractId(), request.userId(), "assistant", cachedResponse))
+                                        .thenMany(Flux.just(cachedResponse));
+                            })
+                            .switchIfEmpty(
+                                    // Cache MISS — run full RAG pipeline
+                                    executeRagPipeline(request, cacheKey)
+                            );
+                });
+    }
+
+    /**
+     * Executes the full RAG pipeline: vector search → LLM streaming → cache result
+     */
+    private Flux<String> executeRagPipeline(ChatRequest request, String cacheKey) {
         return Flux.defer(() -> {
             // Build metadata filter for multi-tenant isolation
             FilterExpressionBuilder builder = new FilterExpressionBuilder();
@@ -59,18 +99,33 @@ public class RagService {
                     .collect(Collectors.joining("\n\n---\n\n"));
 
             if (context.isBlank()) {
-                return Flux.just("I cannot find that information in the contract.");
+                String fallback = "I cannot find that information in the contract.";
+                return cacheService.cacheResponse(cacheKey, fallback)
+                        .thenMany(Flux.just(fallback));
             }
 
             // Build the system prompt with context
             String systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{context}", context);
 
-            // Stream response using ChatClient fluent API
+            // Stream response and collect for caching
+            StringBuilder responseBuilder = new StringBuilder();
+
             return chatClient.prompt()
                     .system(systemPrompt)
                     .user(request.question())
                     .stream()
-                    .content();
+                    .content()
+                    .doOnNext(responseBuilder::append)
+                    .doOnComplete(() -> {
+                        String fullResponse = responseBuilder.toString();
+                        // Cache the complete response
+                        cacheService.cacheResponse(cacheKey, fullResponse).subscribe();
+                        // Save to chat history
+                        chatHistoryService.saveMessage(
+                                request.contractId(), request.userId(), "user", request.question()).subscribe();
+                        chatHistoryService.saveMessage(
+                                request.contractId(), request.userId(), "assistant", fullResponse).subscribe();
+                    });
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }

@@ -24,10 +24,15 @@ public class DocumentIngestionService {
 
     private final VectorStore vectorStore;
     private final JdbcTemplate jdbcTemplate;
+    private final CacheService cacheService;
+    private final ChatHistoryService chatHistoryService;
 
-    public DocumentIngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate) {
+    public DocumentIngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate,
+                                    CacheService cacheService, ChatHistoryService chatHistoryService) {
         this.vectorStore = vectorStore;
         this.jdbcTemplate = jdbcTemplate;
+        this.cacheService = cacheService;
+        this.chatHistoryService = chatHistoryService;
     }
 
     public Map<String, Object> ingestDocument(FilePart filePart) {
@@ -60,6 +65,12 @@ public class DocumentIngestionService {
 
             // Save chunks to vector store (triggers embedding via Ollama)
             vectorStore.add(chunks);
+
+            // Invalidate Redis cache for this contract (old answers are now stale)
+            cacheService.invalidateContractCache(DEFAULT_CONTRACT_ID).subscribe();
+
+            // Clear chat history (new document means fresh conversation)
+            chatHistoryService.clearHistory(DEFAULT_CONTRACT_ID, DEFAULT_USER_ID).subscribe();
 
             return Map.of(
                     "status", "success",

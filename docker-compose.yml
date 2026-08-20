@@ -19,6 +19,20 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: contract-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   ollama:
     image: ollama/ollama:latest
     container_name: contract-ollama
@@ -49,8 +63,12 @@ services:
       SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
       SPRING_AI_OLLAMA_CHAT_MODEL: llama3
       SPRING_AI_OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       ollama:
         condition: service_started
@@ -70,3 +88,4 @@ services:
 volumes:
   pgdata:
   ollama_data:
+  redis_data:
