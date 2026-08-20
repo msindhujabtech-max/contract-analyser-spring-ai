@@ -673,29 +673,111 @@ Backend pods connect to `redis-service:6379` via Kubernetes DNS.
 | **String (counter)** | `INCR`, `EXPIRE` | `ratelimit:{uid}` | Rate limiting |
 | **List** | `RPUSH`, `LRANGE`, `LTRIM` | `chat:history:{cid}:{uid}` | Chat message history |
 
-### Example Redis CLI inspection:
+### Redis inspection and operational commands
 
-```bash
-# Connect to Redis
+Run these from the project root in PowerShell. The Redis container is named `contract-redis`.
+
+```powershell
+# Confirm the Redis service is running and healthy
+docker compose ps redis
+docker exec contract-redis redis-cli ping
+
+# Open an interactive Redis console
 docker exec -it contract-redis redis-cli
 
-# View all keys
-KEYS *
+# View database-level key and TTL statistics
+docker exec contract-redis redis-cli INFO keyspace
 
-# Check a cached response
-GET rag:response:1:101:a3f2b8c1d4e5f678
+# List all application keys. SCAN is safe for a running Redis instance.
+docker exec contract-redis redis-cli --scan
 
-# Check rate limit counter
-GET ratelimit:101
+# List each type of application key
+docker exec contract-redis redis-cli --scan --pattern "rag:response:*"
+docker exec contract-redis redis-cli --scan --pattern "chat:history:*"
+docker exec contract-redis redis-cli --scan --pattern "ratelimit:*"
+```
 
-# View chat history
-LRANGE chat:history:1:101 0 -1
+Do not use `KEYS *` against a large or production Redis database because it blocks Redis while it scans every key. Use `SCAN` as shown above.
 
-# Check TTL (seconds remaining)
-TTL rag:response:1:101:a3f2b8c1d4e5f678
+#### Cached RAG responses
 
-# Manual cache clear
-DEL rag:response:1:101:a3f2b8c1d4e5f678
+Response cache keys use `rag:response:{contractId}:{userId}:{questionHash}`. The hash is the first 16 characters of the SHA-256 hash of the trimmed, lower-case question.
+
+```powershell
+# Inspect a known cache entry
+docker exec contract-redis redis-cli TYPE "rag:response:1:101:a3f2b8c1d4e5f678"
+docker exec contract-redis redis-cli --raw GET "rag:response:1:101:a3f2b8c1d4e5f678"
+
+# Remaining cache lifetime in seconds; -2 means the key does not exist
+docker exec contract-redis redis-cli TTL "rag:response:1:101:a3f2b8c1d4e5f678"
+
+# Show every cached answer with its type, TTL, and value
+$keys = docker exec contract-redis redis-cli --scan --pattern "rag:response:*"
+foreach ($key in $keys) {
+  Write-Host "--- $key ---"
+  docker exec contract-redis redis-cli TYPE $key
+  docker exec contract-redis redis-cli TTL $key
+  docker exec contract-redis redis-cli --raw GET $key
+}
+```
+
+#### Chat history
+
+Chat history keys use `chat:history:{contractId}:{userId}` and are Redis lists containing JSON messages.
+
+```powershell
+# Read the full persisted chat history from Redis
+docker exec contract-redis redis-cli --raw LRANGE "chat:history:1:101" 0 -1
+
+# Count stored messages and inspect the 24-hour history TTL
+docker exec contract-redis redis-cli LLEN "chat:history:1:101"
+docker exec contract-redis redis-cli TTL "chat:history:1:101"
+
+# List all saved conversations
+docker exec contract-redis redis-cli --scan --pattern "chat:history:*"
+
+# Read the same history through the backend API
+curl.exe "http://localhost:8000/api/chat/history?contract_id=1&user_id=101"
+```
+
+#### Rate-limit counters
+
+```powershell
+# Read the current request counter and its one-minute window
+docker exec contract-redis redis-cli GET "ratelimit:101"
+docker exec contract-redis redis-cli TTL "ratelimit:101"
+```
+
+#### Verify persistence across a backend restart
+
+Redis runs independently of the Spring Boot container and persists data through its AOF file in the `redis_data` Docker volume. A backend restart does not delete cache or history entries.
+
+```powershell
+# Choose a key shown by the SCAN command and note its TTL
+docker exec contract-redis redis-cli TTL "rag:response:1:101:a3f2b8c1d4e5f678"
+
+# Restart only the backend service
+docker compose restart backend
+
+# The same key should still exist; its TTL will be slightly lower
+docker exec contract-redis redis-cli --raw GET "rag:response:1:101:a3f2b8c1d4e5f678"
+docker exec contract-redis redis-cli TTL "rag:response:1:101:a3f2b8c1d4e5f678"
+```
+
+#### Manual cleanup commands
+
+Use these only when intentionally invalidating local cache data.
+
+```powershell
+# Delete one cached response or one conversation
+docker exec contract-redis redis-cli DEL "rag:response:1:101:a3f2b8c1d4e5f678"
+docker exec contract-redis redis-cli DEL "chat:history:1:101"
+
+# Delete every Redis key in the current database. Destructive.
+docker exec contract-redis redis-cli FLUSHDB
+
+# docker compose down -v is also destructive: it removes redis_data,
+# PostgreSQL data, and all other Compose volumes.
 ```
 
 ---

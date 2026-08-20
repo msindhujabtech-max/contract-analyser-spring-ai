@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 
 RUN apt-get update && apt-get install -y unzip curl && rm -rf /var/lib/apt/lists/*
-RUN chmod +x mvnw && ./mvnw clean package -DskipTests
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw && ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
