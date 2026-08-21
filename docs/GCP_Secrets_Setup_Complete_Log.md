@@ -153,21 +153,79 @@ bindings:
 | # | Issue | Cause | Fix |
 |---|-------|-------|-----|
 | 1 | `INVALID_ARGUMENT: Invalid service account ()` | PowerShell doesn't support `$(...)` bash syntax | Split into 2 commands: first get email, then use it explicitly |
+| 2 | App shows `"default"` profile even after deploying with GCP secrets command | `SPRING_PROFILES_ACTIVE` env var was not passed into the Docker container — shell var doesn't propagate through docker-compose | Added `SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}` to docker-compose.yml backend environment |
+
+---
+
+## Issue #2: GCP Profile Not Activating (Detailed)
+
+### Problem
+
+After deploying with what we thought was the GCP command, we verified with:
+```bash
+docker logs contract-backend 2>&1 | grep -i "profile\|secretmanager\|sm://"
+```
+
+**Output**:
+```
+No active profile set, falling back to 1 default profile: "default"
+```
+
+The GCP profile was NOT active — app was using hardcoded env vars, not Secret Manager.
+
+### Root Cause
+
+Running `SPRING_PROFILES_ACTIVE=gcp docker compose up` sets the variable in the **host shell**, but Docker Compose doesn't automatically forward shell variables into container environments. The `docker-compose.yml` had hardcoded environment variables but no `SPRING_PROFILES_ACTIVE` entry.
+
+### Fix
+
+Updated `docker-compose.yml` backend environment section to include:
+```yaml
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-contract-analyser-spring-ai-v1}
+```
+
+**How `${VARIABLE:-default}` works in docker-compose**:
+- If the shell variable `SPRING_PROFILES_ACTIVE` is set → use its value
+- If not set → use `default` as fallback
+
+### Verification Command
+
+```bash
+docker logs contract-backend 2>&1 | grep -i "profile\|secretmanager\|sm://"
+```
+
+**Expected output with GCP profile**:
+```
+The following 1 profile is active: "gcp"
+```
+
+**Expected output without (default)**:
+```
+No active profile set, falling back to 1 default profile: "default"
+```
 
 ---
 
 ## Deployment Commands
 
-### Deploy WITH Secret Manager (production):
+### Deploy WITH Secret Manager (GCP profile):
 
 ```bash
-cd ~/contract-analyser-spring-ai && git pull && docker compose down && SPRING_PROFILES_ACTIVE=gcp GCP_PROJECT_ID=contract-analyser-spring-ai-v1 docker compose up --build -d
+cd ~/contract-analyser-spring-ai && git pull && SPRING_PROFILES_ACTIVE=gcp docker compose down && SPRING_PROFILES_ACTIVE=gcp docker compose up --build -d
 ```
 
-### Deploy WITHOUT Secret Manager (normal Docker Compose):
+### Deploy WITHOUT Secret Manager (default profile):
 
 ```bash
 cd ~/contract-analyser-spring-ai && git pull && docker compose down && docker compose up --build -d
+```
+
+### Verify which profile is active:
+
+```bash
+docker logs contract-backend 2>&1 | grep -i "profile\|secretmanager\|sm://"
 ```
 
 ---
