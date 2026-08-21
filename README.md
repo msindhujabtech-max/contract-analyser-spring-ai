@@ -6,7 +6,7 @@ A production-ready, containerized RAG (Retrieval-Augmented Generation) pipeline 
 
 - **Backend**: Java 21 + Spring Boot 3.3 (Reactive WebFlux)
 - **AI Orchestration**: Spring AI with ChatClient fluent API
-- **Local AI**: Ollama (`llama3` for chat, `nomic-embed-text` for embeddings)
+- **Local AI**: Ollama (`llama3.2:3b` for chat, `nomic-embed-text` for embeddings)
 - **Database**: PostgreSQL 16 + pgvector (768 dimensions)
 - **Frontend**: React 18 + Vite
 - **Orchestration**: Docker Compose
@@ -22,6 +22,16 @@ Services:
 - Backend API: http://localhost:8000
 - PostgreSQL: localhost:5432
 - Ollama: localhost:11434
+
+## Redeploy on Google Cloud
+
+Run the following command from Google Cloud Shell to pull the latest `main` branch, rebuild the Docker images, redeploy the existing VM stack, and verify Redis. It assumes the repository is cloned at `~/contract-analyser-spring-ai` on the VM.
+
+```bash
+gcloud compute ssh contract-analyzer-vm --zone us-central1-a --project contract-analyser-spring-ai-v1 --command='set -e; cd ~/contract-analyser-spring-ai; git pull origin main; docker compose up -d --build; docker compose ps; docker exec contract-redis redis-cli ping; docker exec contract-redis redis-cli CLIENT LIST; docker exec contract-redis redis-cli --scan --pattern "rag:response:*"; docker exec contract-redis redis-cli --scan --pattern "chat:history:*"'
+```
+
+Expected results include a `PONG` response from Redis and a `lib-name=Lettuce` connection in the Redis client list. The deployed frontend is available at http://34.70.230.73:3000.
 
 ## API Endpoints
 
@@ -59,6 +69,6 @@ npm run dev
 
 ## Notes
 
-- First startup may take several minutes as Ollama downloads the AI models (~4GB for llama3, ~270MB for nomic-embed-text).
+- First startup may take several minutes as Ollama downloads the AI models (~2GB for llama3.2:3b, ~270MB for nomic-embed-text).
 - The system seeds a default contract entry (ID: 1, User: 101) for immediate evaluation.
 - Multi-tenant isolation is enforced via metadata filtering on vector similarity searches.
