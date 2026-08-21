@@ -6,7 +6,7 @@ A production-ready, containerized RAG (Retrieval-Augmented Generation) pipeline 
 
 - **Backend**: Java 21 + Spring Boot 3.3 (Reactive WebFlux)
 - **AI Orchestration**: Spring AI with ChatClient fluent API
-- **Local AI**: Ollama (`llama3` for chat, `nomic-embed-text` for embeddings)
+- **Local AI**: Ollama (`llama3.2:3b` for chat, `nomic-embed-text` for embeddings)
 - **Database**: PostgreSQL 16 + pgvector (768 dimensions)
 - **Frontend**: React 18 + Vite
 - **Orchestration**: Docker Compose
@@ -69,6 +69,6 @@ npm run dev
 
 ## Notes
 
-- First startup may take several minutes as Ollama downloads the AI models (~4GB for llama3, ~270MB for nomic-embed-text).
+- First startup may take several minutes as Ollama downloads the AI models (~2GB for llama3.2:3b, ~270MB for nomic-embed-text).
 - The system seeds a default contract entry (ID: 1, User: 101) for immediate evaluation.
 - Multi-tenant isolation is enforced via metadata filtering on vector similarity searches.
