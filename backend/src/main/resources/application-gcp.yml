@@ -1,0 +1,49 @@
+# ============================================================
+# GCP Profile — Activated when running in Google Cloud
+# Usage: java -jar app.jar --spring.profiles.active=gcp
+# ============================================================
+
+spring:
+  cloud:
+    gcp:
+      project-id: ${GCP_PROJECT_ID:contract-analyser-spring-ai-v1}
+      secretmanager:
+        enabled: true
+
+  # Secrets fetched from GCP Secret Manager using sm:// prefix
+  # Format: ${sm://SECRET_NAME}
+  # These secrets must be created in GCP Secret Manager first
+  datasource:
+    url: ${sm://db-connection-url}
+    username: ${sm://db-username}
+    password: ${sm://db-password}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${sm://redis-host}
+      port: 6379
+      password: ${sm://redis-password}
+
+  ai:
+    ollama:
+      base-url: ${sm://ollama-base-url}
+      chat:
+        options:
+          model: llama3
+          temperature: 0.2
+      embedding:
+        options:
+          model: nomic-embed-text
+    vectorstore:
+      pgvector:
+        index-type: hnsw
+        distance-type: cosine_distance
+        dimensions: 768
+        schema-validation: false
+        initialize-schema: false
+
+app:
+  cache:
+    response-ttl-minutes: 60
+    rate-limit-requests-per-minute: 20

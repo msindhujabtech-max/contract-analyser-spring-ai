@@ -2,6 +2,9 @@ server:
   port: 8080
 
 spring:
+  config:
+    import: optional:sm://    # Enables GCP Secret Manager property source (no-op if not on GCP)
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/contractdb}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -12,6 +15,11 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  cloud:
+    gcp:
+      secretmanager:
+        enabled: ${GCP_SECRET_MANAGER_ENABLED:false}  # Only enabled in GCP profile
 
   ai:
     ollama:
