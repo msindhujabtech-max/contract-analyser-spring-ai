@@ -26,13 +26,16 @@ public class DocumentIngestionService {
     private final JdbcTemplate jdbcTemplate;
     private final CacheService cacheService;
     private final ChatHistoryService chatHistoryService;
+    private final AuditService auditService;
 
     public DocumentIngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate,
-                                    CacheService cacheService, ChatHistoryService chatHistoryService) {
+                                    CacheService cacheService, ChatHistoryService chatHistoryService,
+                                    AuditService auditService) {
         this.vectorStore = vectorStore;
         this.jdbcTemplate = jdbcTemplate;
         this.cacheService = cacheService;
         this.chatHistoryService = chatHistoryService;
+        this.auditService = auditService;
     }
 
     public Map<String, Object> ingestDocument(FilePart filePart) {
@@ -71,6 +74,9 @@ public class DocumentIngestionService {
 
             // Clear chat history (new document means fresh conversation)
             chatHistoryService.clearHistory(DEFAULT_CONTRACT_ID, DEFAULT_USER_ID).subscribe();
+
+            // Fire audit event to contract-audit-service (non-blocking)
+            auditService.logAudit(filePart.filename(), "INGESTED", chunks.size()).subscribe();
 
             return Map.of(
                     "status", "success",
