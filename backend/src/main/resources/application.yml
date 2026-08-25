@@ -44,3 +44,5 @@ app:
   cache:
     response-ttl-minutes: 60
     rate-limit-requests-per-minute: 20
+  audit:
+    base-url: ${AUDIT_SERVICE_URL:http://localhost:8082}
