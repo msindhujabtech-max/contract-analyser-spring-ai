@@ -1,0 +1,8 @@
+# Terraform state (contains sensitive info — never commit)
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# User-specific variables (contains project ID)
+terraform.tfvars

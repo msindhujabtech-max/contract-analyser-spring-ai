@@ -1,0 +1,10 @@
+# Copy this file to terraform.tfvars and fill in your GCP project ID
+# cp terraform.tfvars.example terraform.tfvars
+
+project_id = "YOUR-GCP-PROJECT-ID-HERE"
+
+# Optional overrides (defaults are fine for most cases)
+# region       = "us-central1"
+# zone         = "us-central1-a"
+# machine_type = "e2-standard-4"
+# disk_size_gb = 50
