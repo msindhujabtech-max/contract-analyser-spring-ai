@@ -34,15 +34,17 @@ public class RagService {
     private final CacheService cacheService;
     private final ChatHistoryService chatHistoryService;
     private final RateLimiterService rateLimiterService;
+    private final AuditKafkaProducer auditKafkaProducer;
 
     public RagService(ChatClient chatClient, VectorStore vectorStore,
                       CacheService cacheService, ChatHistoryService chatHistoryService,
-                      RateLimiterService rateLimiterService) {
+                      RateLimiterService rateLimiterService, AuditKafkaProducer auditKafkaProducer) {
         this.chatClient = chatClient;
         this.vectorStore = vectorStore;
         this.cacheService = cacheService;
         this.chatHistoryService = chatHistoryService;
         this.rateLimiterService = rateLimiterService;
+        this.auditKafkaProducer = auditKafkaProducer;
     }
 
     public Flux<String> streamResponse(ChatRequest request) {
@@ -125,6 +127,11 @@ public class RagService {
                                 request.contractId(), request.userId(), "user", request.question()).subscribe();
                         chatHistoryService.saveMessage(
                                 request.contractId(), request.userId(), "assistant", fullResponse).subscribe();
+                        // Send audit event via Kafka (async — fire and forget)
+                        auditKafkaProducer.sendAuditEvent(
+                                "chat-query-contract-" + request.contractId(),
+                                "QUESTION_ANSWERED",
+                                fullResponse.length());
                     });
         }).subscribeOn(Schedulers.boundedElastic());
     }
