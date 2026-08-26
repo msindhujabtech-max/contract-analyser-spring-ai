@@ -77,6 +77,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       AUDIT_SERVICE_URL: http://contract-audit-service:8082
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ZIPKIN_URL: http://zipkin:9411
     depends_on:
       db:
         condition: service_healthy
@@ -127,6 +128,14 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       - zookeeper
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: contract-zipkin
+    networks:
+      - contract-network
+    ports:
+      - "9411:9411"
 
 volumes:
   pgdata:

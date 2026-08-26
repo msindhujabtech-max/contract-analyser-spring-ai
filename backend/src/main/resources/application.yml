@@ -52,3 +52,31 @@ app:
     rate-limit-requests-per-minute: 20
   audit:
     base-url: ${AUDIT_SERVICE_URL:http://localhost:8082}
+
+# Actuator (health checks + metrics)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0   # Trace 100% of requests (use 0.1 in production)
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411}/api/v2/spans
+
+# Circuit Breaker (Resilience4j)
+resilience4j:
+  circuitbreaker:
+    instances:
+      auditService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
