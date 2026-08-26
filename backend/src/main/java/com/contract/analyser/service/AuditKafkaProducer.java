@@ -35,14 +35,17 @@ public class AuditKafkaProducer {
 
     /**
      * Publishes an audit event to Kafka.
-     * The message is a JSON string with contractName, status, and wordCount.
+     * The message is a JSON string with contractName, status, wordCount, question, and answer.
      */
-    public void sendAuditEvent(String contractName, String status, int wordCount) {
+    public void sendAuditEvent(String contractName, String status, int wordCount,
+                               String question, String answer) {
         try {
             Map<String, Object> event = Map.of(
                     "contractName", contractName,
                     "status", status,
-                    "wordCount", wordCount
+                    "wordCount", wordCount,
+                    "question", question,
+                    "answer", answer
             );
             String message = objectMapper.writeValueAsString(event);
 

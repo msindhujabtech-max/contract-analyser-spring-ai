@@ -131,7 +131,9 @@ public class RagService {
                         auditKafkaProducer.sendAuditEvent(
                                 "chat-query-contract-" + request.contractId(),
                                 "QUESTION_ANSWERED",
-                                fullResponse.length());
+                                fullResponse.length(),
+                                request.question(),
+                                fullResponse);
                     });
         }).subscribeOn(Schedulers.boundedElastic());
     }
