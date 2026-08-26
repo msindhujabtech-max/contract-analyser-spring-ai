@@ -75,14 +75,16 @@ public class DocumentIngestionService {
             // Clear chat history (new document means fresh conversation)
             chatHistoryService.clearHistory(DEFAULT_CONTRACT_ID, DEFAULT_USER_ID).subscribe();
 
-            // Fire audit event to contract-audit-service (non-blocking)
-            auditService.logAudit(filePart.filename(), "INGESTED", chunks.size()).subscribe();
+            // Fire audit event to contract-audit-service (blocking to capture response)
+            String auditResult = auditService.logAudit(filePart.filename(), "INGESTED", chunks.size())
+                    .block(java.time.Duration.ofSeconds(3));
 
             return Map.of(
                     "status", "success",
                     "filename", filePart.filename(),
                     "chunks", chunks.size(),
-                    "message", "Document processed and indexed successfully"
+                    "message", "Document processed and indexed successfully",
+                    "auditStatus", auditResult != null ? auditResult : "Audit service unavailable"
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to process document: " + e.getMessage(), e);

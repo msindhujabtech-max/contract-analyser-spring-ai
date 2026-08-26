@@ -33,6 +33,6 @@ public class AuditService {
                 .bodyToMono(String.class)
                 .doOnSuccess(resp -> log.info("Audit logged: {}", resp))
                 .doOnError(err -> log.warn("Audit service unavailable: {}", err.getMessage()))
-                .onErrorResume(e -> Mono.empty());
+                .onErrorResume(e -> Mono.just("Audit service unavailable"));
     }
 }

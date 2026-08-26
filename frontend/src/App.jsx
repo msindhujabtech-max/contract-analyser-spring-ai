@@ -38,7 +38,8 @@ function App() {
       }
 
       const result = await response.json();
-      setUploadStatus(`✓ "${result.filename}" processed — ${result.chunks} chunks indexed`);
+      const auditInfo = result.auditStatus ? ` | 🛡️ ${result.auditStatus}` : '';
+      setUploadStatus(`✓ "${result.filename}" processed — ${result.chunks} chunks indexed${auditInfo}`);
     } catch (error) {
       setUploadStatus(`✗ Error: ${error.message}`);
     } finally {
