@@ -621,4 +621,145 @@ QUERY:
 
 ---
 
+# DEEP DIVE: What Does "768-Dimension Embedding" Really Mean?
+
+## Start Simple: 2 Dimensions
+
+Imagine you rate every food on just **2 things**:
+- Dimension 1: How **sweet** is it? (0 to 1)
+- Dimension 2: How **spicy** is it? (0 to 1)
+
+```
+Ice cream    → [0.9, 0.0]   (very sweet, not spicy)
+Chocolate    → [0.8, 0.0]   (sweet, not spicy)
+Chili pepper → [0.0, 0.9]   (not sweet, very spicy)
+Hot sauce    → [0.1, 0.8]   (barely sweet, spicy)
+```
+
+Plot them on a graph:
+
+```
+sweet
+ 1.0 │ Ice cream ● 
+     │ Chocolate ●
+     │
+ 0.5 │
+     │              ● Hot sauce
+     │              ● Chili pepper
+ 0.0 └────────────────────────── spicy
+     0.0          0.5         1.0
+```
+
+**Notice**: Ice cream and Chocolate are CLOSE (both sweet). Chili and Hot sauce are CLOSE (both spicy). Ice cream is FAR from Chili.
+
+**That closeness = similarity.** With just 2 numbers, we captured "meaning" (taste).
+
+---
+
+## Now Scale Up to 768
+
+Text meaning is far more complex than food taste. You can't capture "meaning" with just 2 numbers. So the embedding model uses **768 numbers** — 768 different "dimensions of meaning."
+
+Each number captures some subtle aspect of meaning. You don't know exactly what each one represents (the AI learned them during training), but conceptually:
+
+```
+Dimension 1   → maybe "is this about money?"
+Dimension 2   → maybe "is this about time/dates?"
+Dimension 3   → maybe "is this formal/legal language?"
+Dimension 4   → maybe "is this about people/parties?"
+...
+Dimension 768 → maybe "is this a question or a statement?"
+```
+
+So a sentence about payment becomes:
+```
+"monthly fee of $5,000"  →  [0.9, 0.3, 0.8, 0.2, ... 764 more ...]
+                              ↑    ↑    ↑    ↑
+                          money time legal people
+                          HIGH  med  HIGH  low
+```
+
+---
+
+## Why This Enables "Smart" Search
+
+```
+Question: "What are the payment terms?"
+  → embeds to → [0.9, 0.3, 0.7, 0.2, ...]   (HIGH on money dimension)
+
+Chunk A: "monthly fee of $5,000"
+  → embeds to → [0.9, 0.3, 0.8, 0.2, ...]   (HIGH on money) ← CLOSE! ✅
+
+Chunk B: "confidentiality for 5 years"
+  → embeds to → [0.1, 0.6, 0.7, 0.3, ...]   (LOW on money) ← FAR ✗
+```
+
+Even though the question says "payment" and the chunk says "fee" (DIFFERENT words!), their 768-number fingerprints are close because they MEAN similar things. That's why it's called **semantic** (meaning-based) search, not keyword search.
+
+---
+
+## The Physical Analogy
+
+```
+2 dimensions   = a point on a piece of paper (x, y)
+3 dimensions   = a point in a room (x, y, z) — length, width, height
+768 dimensions = a point in a space with 768 axes
+```
+
+You can't *visualize* 768 dimensions, but the math handles it fine. The distance formula works the same whether it's 2 numbers or 768 numbers.
+
+---
+
+## Why Exactly 768?
+
+It's simply the output size the `nomic-embed-text` model was designed with. Different models produce different sizes:
+
+| Model | Dimensions |
+|-------|-----------|
+| nomic-embed-text (ours) | 768 |
+| OpenAI text-embedding-3-small | 1536 |
+| OpenAI text-embedding-3-large | 3072 |
+
+More dimensions = more nuance captured, but more storage and compute. 768 is a good balance for accuracy vs cost.
+
+**This is why our database column is `vector(768)`** — it must EXACTLY match the model's output size. If we switched to a model outputting 1536 numbers, we'd change the column to `vector(1536)`.
+
+---
+
+## How Similarity is Measured (Cosine Similarity)
+
+Once both the question and chunks are vectors, we measure the ANGLE between them:
+
+```
+Small angle  = pointing the same direction = similar meaning = HIGH similarity
+Large angle  = pointing different directions = different meaning = LOW similarity
+```
+
+```
+        Chunk A (payment)
+          ↗
+         ╱  small angle = similar
+        ╱
+Question ────→ 
+        ╲
+         ╲  large angle = different
+          ↘
+        Chunk B (confidentiality)
+```
+
+Cosine similarity ranges from -1 to 1:
+- **1.0** = identical direction (same meaning)
+- **0.0** = perpendicular (unrelated)
+- **-1.0** = opposite direction
+
+In our HNSW index, PostgreSQL uses `vector_cosine_ops` to do exactly this comparison — extremely fast, even across millions of vectors.
+
+---
+
+## One-Line Summary
+
+> **768 dimensions** = the model describes each piece of text using 768 different "meaning scores." Texts with similar scores mean similar things, so we find relevant content by finding the closest number-fingerprints — not by matching exact words.
+
+---
+
 *End of Document*
