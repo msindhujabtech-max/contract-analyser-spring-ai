@@ -45,6 +45,7 @@ Two structures solve ~60% of interview problems: **HashMap** (counting/lookup) a
 
 # Warm-up: Reverse a string (3 ways)
 
+**Input:** `"hello"` → **Output:** `"olleh"`
 **Approach:** convert to char array and either loop backward, two-pointer swap, or build with StringBuilder.
 
 ```java
@@ -85,6 +86,7 @@ public String reverse3(String input) {
 ---
 
 ## 1. Palindrome check
+**Input:** `"racecar"` → **Output:** `true`  |  `"hello"` → `false`
 **Approach:** compare two ends → two pointers, O(1) space.
 Dry-run `"racecar"`: (r,r)(a,a)(e,e) meet → palindrome.
 ```java
@@ -103,6 +105,7 @@ Time O(n), space O(1).
 ---
 
 ## 2. First non-repeating character
+**Input:** `"swiss"` → **Output:** `'w'`
 **Approach:** need counts → frequency map (LinkedHashMap keeps order), then find first with count 1.
 Dry-run `"swiss"`: {s:3,w:1,i:1} → 'w'.
 ```java
@@ -122,6 +125,7 @@ Time O(n).
 ---
 
 ## 3. Two Sum (return indices)
+**Input:** `[2,7,11]`, target `9` → **Output:** `[0,1]`
 **Approach:** for each x, need target - x. If already seen it → pair. HashMap value→index.
 Dry-run `[2,7,11]`, target 9: see 2 (store), see 7 (need 2, found) → [0,1].
 ```java
@@ -142,6 +146,7 @@ Time O(n), space O(n). Trade space for time.
 ---
 
 ## 4. Anagram check
+**Input:** `"listen"`, `"silent"` → **Output:** `true`  |  `"abc"`, `"abd"` → `false`
 **Approach:** same chars + counts. Count up for a, down for b; all zero → anagram.
 Dry-run `"listen"`,`"silent"` → all counts 0.
 ```java
@@ -163,6 +168,7 @@ public boolean isAnagram(String a, String b) {
 ---
 
 ## 5. Find duplicates in an array
+**Input:** `[1,2,3,2]` → **Output:** `[2]`
 **Approach:** "have I seen it?" → HashSet. `add` returns false if present.
 Dry-run `[1,2,3,2]` → 2.
 ```java
@@ -182,6 +188,7 @@ Time O(n), space O(n).
 ---
 
 ## 6. Reverse words in a sentence ("hello world" → "world hello")
+**Input:** `"hello world"` → **Output:** `"world hello"`
 **Approach:** split on spaces, walk tokens from the end.
 ```java
 public String reverseWords(String sentence) {
@@ -199,6 +206,7 @@ Time O(n). Edge: no trailing space.
 ---
 
 ## 7. Second largest element
+**Input:** `[3,7,1,7,5]` → **Output:** `5`
 **Approach:** one pass, track largest + second; handle duplicates & init with MIN_VALUE.
 Dry-run `[3,7,1,7,5]` → 5.
 ```java
@@ -220,6 +228,7 @@ Time O(n).
 ---
 
 ## 8. FizzBuzz
+**Input:** `n=15` → **Output:** `1 2 Fizz 4 Buzz Fizz 7 8 Fizz Buzz 11 Fizz 13 14 FizzBuzz`
 **Approach:** check divisible-by-15 FIRST, then 3, then 5. Branch order matters.
 ```java
 public void fizzBuzz(int n) {
@@ -235,6 +244,7 @@ public void fizzBuzz(int n) {
 ---
 
 ## 9. Count occurrences of each word
+**Input:** `"a b a"` → **Output:** `{a=2, b=1}`
 **Approach:** frequency map on words (same shape as #2).
 ```java
 public Map<String, Integer> wordCount(String text) {
@@ -249,6 +259,7 @@ public Map<String, Integer> wordCount(String text) {
 ---
 
 ## 10. Fibonacci (nth)
+**Input:** `n=5` → **Output:** `5`  (sequence: 0,1,1,2,3,5)
 **Approach:** iterative with two variables beats naive recursion (O(2^n) → O(n)).
 Dry-run n=5: 0,1,1,2,3,5.
 ```java
@@ -267,6 +278,7 @@ public int fib(int n) {
 ---
 
 ## 11. Remove duplicates from sorted array (in place)
+**Input:** `[1,1,2,3,3]` → **Output:** length `3`, array `[1,2,3,...]`
 **Approach:** sorted + in-place → slow/fast pointers.
 Dry-run `[1,1,2,3,3]` → length 3, `[1,2,3,...]`.
 ```java
@@ -287,6 +299,7 @@ Time O(n), space O(1).
 ---
 
 ## 12. Longest substring without repeating characters (sliding window)
+**Input:** `"abcabcbb"` → **Output:** `3`  (the substring "abc")
 **Approach:** longest window with a property → sliding window + Set; expand right, shrink left on repeat.
 Dry-run `"abcabcbb"` → 3.
 ```java
@@ -309,6 +322,7 @@ Time O(n).
 ---
 
 ## 13. Count vowels and consonants
+**Input:** `"java"` → **Output:** `Vowels: 2, Consonants: 2`
 **Approach:** single scan, classify each letter via a vowel set; ignore non-letters.
 Dry-run `"java"` → vowels 2, consonants 2.
 ```java
@@ -329,6 +343,7 @@ Time O(n).
 ---
 
 ## 14. Check if a number is prime
+**Input:** `13` → **Output:** `true`  |  `12` → `false`
 **Approach:** no divisor between 2 and sqrt(n). Loop only to sqrt(n) using `i*i <= n`.
 Dry-run 13: check 3 → prime.
 ```java
@@ -347,6 +362,7 @@ Time O(sqrt(n)).
 ---
 
 ## 15. Reverse an integer (123 → 321)
+**Input:** `123` → **Output:** `321`  |  `-45` → `-54`
 **Approach:** peel digits with `% 10`, build `result*10 + digit`, drop with `/ 10`.
 Dry-run 123 → 3, 32, 321.
 ```java
@@ -365,6 +381,7 @@ Handles negatives in Java automatically.
 ---
 
 ## 16. Move all zeros to the end (keep order)
+**Input:** `[0,1,0,3]` → **Output:** `[1,3,0,0]`
 **Approach:** in-place + keep order → slow/fast pointers; copy non-zeros, then fill zeros.
 Dry-run `[0,1,0,3]` → `[1,3,0,0]`.
 ```java
@@ -387,6 +404,7 @@ Time O(n), space O(1).
 ---
 
 ## 17. Missing number in array of 0..n
+**Input:** `[0,1,3]` → **Output:** `2`
 **Approach:** expected sum n(n+1)/2 minus actual sum = missing. (XOR alternative avoids overflow.)
 Dry-run `[0,1,3]` → 6-4 = 2.
 ```java
@@ -403,6 +421,7 @@ Time O(n), space O(1).
 ---
 
 ## 18. Valid parentheses
+**Input:** `"({})"` → **Output:** `true`  |  `"(]"` → `false`
 **Approach:** matching/nesting → Stack. Push opens; pop & match on closes; empty at end = valid.
 Dry-run `"({})"` → valid.
 ```java
@@ -427,6 +446,7 @@ Time O(n).
 ---
 
 ## 19. Merge two sorted arrays
+**Input:** `[1,3]`, `[2,4]` → **Output:** `[1,2,3,4]`
 **Approach:** two pointers, take smaller front each time; then drain leftovers.
 Dry-run `[1,3]`,`[2,4]` → `[1,2,3,4]`.
 ```java
@@ -447,6 +467,7 @@ Time O(n+m).
 ---
 
 ## 20. Most frequent element
+**Input:** `[1,2,2,3,2]` → **Output:** `2`
 **Approach:** counts → HashMap, then find max-count entry.
 Dry-run `[1,2,2,3,2]` → 2.
 ```java
@@ -468,6 +489,7 @@ Time O(n).
 ---
 
 ## 21. Digital root (9875 → 2)
+**Input:** `9875` → **Output:** `2`  (9875→29→11→2)
 **Approach:** repeatedly sum digits until single digit (loop within loop).
 Dry-run 9875 → 29 → 11 → 2.
 ```java
@@ -487,6 +509,7 @@ public int digitalRoot(int n) {
 ---
 
 ## 22. Factorial (iterative + recursive)
+**Input:** `5` → **Output:** `120`  (5×4×3×2×1)
 **Approach:** recursion is natural (n! = n*(n-1)!); iteration avoids stack depth. Use long.
 ```java
 public long factorialIter(int n) {
@@ -505,6 +528,7 @@ Always state the base case.
 ---
 
 ## 23. Count occurrences in sorted array (binary search)
+**Input:** `[1,2,2,2,3]`, target `2` → **Output:** `3`
 **Approach:** sorted → binary search for first & last index; count = last-first+1.
 Dry-run `[1,2,2,2,3]`, target 2 → 3.
 ```java
@@ -537,6 +561,7 @@ Time O(log n).
 ---
 
 ## 24. Maximum subarray sum (Kadane)
+**Input:** `[-2,1,-3,4,-1,2,1]` → **Output:** `6`  (subarray [4,-1,2,1])
 **Approach:** at each element, extend current run or start fresh; track best.
 Dry-run `[-2,1,-3,4,-1,2,1]` → 6.
 ```java
@@ -555,6 +580,7 @@ Time O(n), space O(1).
 ---
 
 ## 25. Swap two numbers without a temp variable
+**Input:** `a=5, b=3` → **Output:** `a=3, b=5`
 **Approach:** sum/difference trick (or XOR). Puzzle, not production code.
 Dry-run a=5,b=3 → a=3,b=5.
 ```java
@@ -569,6 +595,7 @@ public void swap(int a, int b) {
 ---
 
 ## 26. Are two strings rotations? ("abcd" & "cdab")
+**Input:** `"abcd"`, `"cdab"` → **Output:** `true`  |  `"abcd"`, `"abdc"` → `false`
 **Approach:** a rotation of s is a substring of s+s.
 Dry-run "abcd"+"abcd" contains "cdab" → yes.
 ```java
@@ -582,6 +609,7 @@ Time O(n).
 ---
 
 ## 27. GCD (Euclid's algorithm)
+**Input:** `48, 18` → **Output:** `6`
 **Approach:** gcd(a,b) = gcd(b, a % b) until b = 0.
 Dry-run gcd(48,18) → 6.
 ```java
@@ -599,6 +627,7 @@ LCM follow-up: `a / gcd(a,b) * b`.
 ---
 
 ## 28. Sort objects by a field (Comparator)
+**Input:** `[(Anu,50000),(Bala,70000)]` → **Output:** `[(Bala,70000),(Anu,50000)]` (salary desc)
 **Approach:** Comparator.comparing with thenComparing (tie-break) and reversed (desc).
 ```java
 class Employee {
@@ -618,6 +647,7 @@ Time O(n log n).
 ---
 
 ## 29. Group words by first letter (streams)
+**Input:** `["apple","banana","avocado"]` → **Output:** `{a=[apple, avocado], b=[banana]}`
 **Approach:** "group by a key" → Collectors.groupingBy.
 Dry-run ["apple","banana","avocado"] → {a:[apple,avocado], b:[banana]}.
 ```java
@@ -632,6 +662,7 @@ Pre-Java-8 equivalent: `map.computeIfAbsent(key, k -> new ArrayList<>()).add(w);
 ---
 
 ## 30. Reverse a singly linked list
+**Input:** `1->2->3` → **Output:** `3->2->1`
 **Approach:** walk list, reverse each next pointer; track prev/curr/next.
 Dry-run 1->2->3 → 3->2->1.
 ```java
@@ -654,6 +685,7 @@ Time O(n), space O(1).
 ---
 
 ## 31. Find middle of a linked list
+**Input:** `1->2->3->4->5` → **Output:** `3`
 **Approach:** fast/slow pointers; slow +1, fast +2; slow ends at middle.
 Dry-run 1->2->3->4->5 → 3.
 ```java
@@ -671,6 +703,7 @@ Same idea detects cycles (Floyd's).
 ---
 
 ## 32. Two Sum on a SORTED array (two pointers)
+**Input:** `[1,3,4,6]`, target `9` → **Output:** `[1,3]` (values 3+6)
 **Approach:** sorted → two pointers; sum too small move left up, too big move right down. O(1) space.
 Dry-run `[1,3,4,6]`, target 9 → [1,3].
 ```java
@@ -690,6 +723,7 @@ Time O(n), space O(1).
 ---
 
 ## 33. Longest common prefix
+**Input:** `["flower","flow","flight"]` → **Output:** `"fl"`
 **Approach:** start with first string, shrink until all start with it.
 Dry-run ["flower","flow","flight"] → "fl".
 ```java
@@ -710,6 +744,7 @@ Time O(n * m).
 ---
 
 ## 34. Rotate an array by k (in place)
+**Input:** `[1,2,3,4,5]`, `k=2` → **Output:** `[4,5,1,2,3]`
 **Approach:** reverse whole, reverse first k, reverse rest. Handle k > length with k %= n.
 Dry-run `[1,2,3,4,5]`, k=2 → `[4,5,1,2,3]`.
 ```java
@@ -736,6 +771,7 @@ Time O(n), space O(1).
 ---
 
 ## 35. Print a matrix in spiral order
+**Input:** `[[1,2,3],[4,5,6],[7,8,9]]` → **Output:** `[1,2,3,6,9,8,7,4,5]`
 **Approach:** four shrinking boundaries (top/bottom/left/right); guard against double-print.
 ```java
 public List<Integer> spiralOrder(int[][] matrix) {
@@ -765,6 +801,7 @@ Time O(rows*cols).
 ---
 
 ## 36. Climbing stairs (intro DP)
+**Input:** `n=4` → **Output:** `5`  (ways: 1+1+1+1, 1+1+2, 1+2+1, 2+1+1, 2+2)
 **Approach:** ways(n) = ways(n-1) + ways(n-2) — Fibonacci in disguise; iterate O(n)/O(1).
 Dry-run n=4 → 5.
 ```java
@@ -818,3 +855,75 @@ Time O(n), space O(1).
 - For every problem, say the trigger sentence out loud: "This is X because Y, so I'll use Z."
 - Interviewers score problem-solving on hearing you pick and justify the right tool — not just the final code.
 - Master HashMap + two pointers first; they cover ~60% of questions.
+
+---
+
+## 37. Validate country name capitalization (charArray approach)
+
+**Rule:** valid only if the name is ALL uppercase (`INDIA`), ALL lowercase (`india`),
+or title case (`India` — first upper, rest lower). Any mixed case (`iNdia`, `inDIA`,
+`INdia`) is invalid.
+
+**Approach:** convert to `char[]`, check if the first char is uppercase, then scan the
+rest tracking two flags (`restAllUpper`, `restAllLower`). Match against the 3 valid patterns.
+
+```java
+public class ValidateCountry {
+
+    public static void main(String[] args) {
+        System.out.println("INDIA -> " + validateCountryName("INDIA"));
+        System.out.println("India -> " + validateCountryName("India"));
+        System.out.println("india -> " + validateCountryName("india"));
+        System.out.println("iNdia -> " + validateCountryName("iNdia"));
+        System.out.println("inDIA -> " + validateCountryName("inDIA"));
+        System.out.println("INdia -> " + validateCountryName("INdia"));
+    }
+
+    public static boolean validateCountryName(String country) {
+        if (country == null || country.isEmpty()) return false;   // edge case
+
+        char[] charArray = country.toCharArray();
+        boolean firstIsUpper = Character.isUpperCase(charArray[0]);
+
+        boolean restAllUpper = true;
+        boolean restAllLower = true;
+        for (int i = 1; i < charArray.length; i++) {
+            if (Character.isUpperCase(charArray[i])) {
+                restAllLower = false;   // found upper -> not all lower
+            } else {
+                restAllUpper = false;   // found lower -> not all upper
+            }
+        }
+
+        if (firstIsUpper && restAllUpper) return true;   // INDIA
+        if (firstIsUpper && restAllLower) return true;   // India
+        if (!firstIsUpper && restAllLower) return true;  // india
+        return false;                                    // anything else
+    }
+}
+```
+
+**Actual output (compiled & run with Java 8):**
+```
+INDIA -> true
+India -> true
+india -> true
+iNdia -> false
+inDIA -> false
+INdia -> false
+```
+
+**Dry-run trace:**
+
+| Input | firstIsUpper | rest | Rule matched | Result |
+|-------|:-----------:|------|--------------|:------:|
+| `INDIA` | true | all upper | firstUpper + restUpper | true |
+| `India` | true | all lower | firstUpper + restLower | true |
+| `india` | false | all lower | firstLower + restLower | true |
+| `iNdia` | false | has upper (N) | none | false |
+| `inDIA` | false | has upper | none | false |
+| `INdia` | true | mixed (N up, dia low) | none | false |
+
+**Key methods:** `toCharArray()` (String → char[]), `Character.isUpperCase(c)` (case check).
+**Cleaner alternative:** compare against `country.toUpperCase()`, `toLowerCase()`, and title case with `.equals()`.
+Time O(n), space O(n) for the char array.
