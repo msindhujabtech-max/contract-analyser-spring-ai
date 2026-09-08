@@ -82,6 +82,12 @@ public String reverse3(String input) {
     return sb.toString();
 }
 ```
+**Another approach (built-in):** `new StringBuilder(input).reverse().toString();`
+**Streams:**
+```java
+String reversed = input.chars().mapToObj(c -> String.valueOf((char) c))
+    .reduce("", (a, b) -> b + a);   // prepend each char
+```
 
 ---
 
@@ -101,6 +107,12 @@ public boolean isPalindrome(String s) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (reverse & compare):** `input.equals(new StringBuilder(input).reverse().toString());`
+**Streams:**
+```java
+boolean isPalindrome = IntStream.range(0, s.length() / 2)
+    .allMatch(i -> s.charAt(i) == s.charAt(s.length() - 1 - i));
+```
 
 ---
 
@@ -121,6 +133,18 @@ public Character firstNonRepeating(String s) {
 }
 ```
 Time O(n).
+**Another approach (indexOf == lastIndexOf):**
+```java
+for (char c : s.toCharArray())
+    if (s.indexOf(c) == s.lastIndexOf(c)) return c;   // appears once
+```
+**Streams:**
+```java
+Character result = s.chars().mapToObj(c -> (char) c)
+    .collect(Collectors.groupingBy(c -> c, LinkedHashMap::new, Collectors.counting()))
+    .entrySet().stream().filter(e -> e.getValue() == 1)
+    .map(Map.Entry::getKey).findFirst().orElse(null);
+```
 
 ---
 
@@ -142,6 +166,13 @@ public int[] twoSum(int[] nums, int target) {
 }
 ```
 Time O(n), space O(n). Trade space for time.
+**Another approach (brute force O(n^2)):**
+```java
+for (int i = 0; i < nums.length; i++)
+    for (int j = i + 1; j < nums.length; j++)
+        if (nums[i] + nums[j] == target) return new int[]{i, j};
+```
+**Streams:** not ideal here — you need index pairs + early exit, so a loop/HashMap is clearer.
 
 ---
 
@@ -164,6 +195,18 @@ public boolean isAnagram(String a, String b) {
 }
 ```
 `char - 'a'` maps 'a'→0 ... 'z'→25. Time O(n), space O(1).
+**Another approach (sort & compare):**
+```java
+char[] a1 = a.toCharArray(); char[] b1 = b.toCharArray();
+Arrays.sort(a1); Arrays.sort(b1);
+boolean anagram = Arrays.equals(a1, b1);
+```
+**Streams:**
+```java
+boolean anagram = a.length() == b.length() &&
+    a.chars().sorted().boxed().collect(Collectors.toList())
+     .equals(b.chars().sorted().boxed().collect(Collectors.toList()));
+```
 
 ---
 
@@ -184,6 +227,19 @@ public List<Integer> findDuplicates(int[] nums) {
 }
 ```
 Time O(n), space O(n).
+**Another approach (frequency map, count > 1):**
+```java
+Map<Integer,Integer> freq = new HashMap<>();
+for (int n : nums) freq.merge(n, 1, Integer::sum);
+freq.forEach((k, v) -> { if (v > 1) dups.add(k); });
+```
+**Streams:**
+```java
+List<Integer> dups = Arrays.stream(nums).boxed()
+    .collect(Collectors.groupingBy(n -> n, Collectors.counting()))
+    .entrySet().stream().filter(e -> e.getValue() > 1)
+    .map(Map.Entry::getKey).collect(Collectors.toList());
+```
 
 ---
 
@@ -202,6 +258,17 @@ public String reverseWords(String sentence) {
 }
 ```
 Time O(n). Edge: no trailing space.
+**Another approach (Collections.reverse):**
+```java
+List<String> words = Arrays.asList(sentence.trim().split("\\s+"));
+Collections.reverse(words);
+String result = String.join(" ", words);
+```
+**Streams:**
+```java
+String result = Arrays.stream(sentence.trim().split("\\s+"))
+    .reduce((a, b) -> b + " " + a).orElse("");
+```
 
 ---
 
@@ -224,6 +291,16 @@ public int secondLargest(int[] nums) {
 }
 ```
 Time O(n).
+**Another approach (sort distinct, take 2nd from end):**
+```java
+int[] sorted = Arrays.stream(nums).distinct().sorted().toArray();
+int second = sorted[sorted.length - 2];
+```
+**Streams:**
+```java
+int second = Arrays.stream(nums).distinct().boxed()
+    .sorted(Comparator.reverseOrder()).skip(1).findFirst().orElseThrow();
+```
 
 ---
 
@@ -240,6 +317,19 @@ public void fizzBuzz(int n) {
     }
 }
 ```
+**Another approach (build string per number):**
+```java
+String s = "";
+if (i % 3 == 0) s += "Fizz";
+if (i % 5 == 0) s += "Buzz";
+System.out.println(s.isEmpty() ? i : s);
+```
+**Streams:**
+```java
+IntStream.rangeClosed(1, n).mapToObj(i ->
+    i % 15 == 0 ? "FizzBuzz" : i % 3 == 0 ? "Fizz" : i % 5 == 0 ? "Buzz" : "" + i)
+    .forEach(System.out::println);
+```
 
 ---
 
@@ -254,6 +344,12 @@ public Map<String, Integer> wordCount(String text) {
     }
     return counts;
 }
+```
+**Another approach (merge):** `counts.merge(word, 1, Integer::sum);` inside the loop.
+**Streams:**
+```java
+Map<String,Long> counts = Arrays.stream(text.toLowerCase().trim().split("\\s+"))
+    .collect(Collectors.groupingBy(w -> w, Collectors.counting()));
 ```
 
 ---
@@ -273,6 +369,20 @@ public int fib(int n) {
     }
     return curr;
 }
+```
+**Another approach (recursion + memoization):**
+```java
+int fib(int n, Map<Integer,Integer> memo) {
+    if (n <= 1) return n;
+    if (memo.containsKey(n)) return memo.get(n);
+    int val = fib(n-1, memo) + fib(n-2, memo);
+    memo.put(n, val); return val;
+}
+```
+**Streams:**
+```java
+int nth = Stream.iterate(new int[]{0,1}, f -> new int[]{f[1], f[0]+f[1]})
+    .limit(n + 1).reduce((a, b) -> b).get()[0];
 ```
 
 ---
@@ -295,6 +405,8 @@ public int removeDuplicates(int[] nums) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (LinkedHashSet, not in-place):** `Set<Integer> set = new LinkedHashSet<>(); for (int n : nums) set.add(n);`
+**Streams:** `int[] unique = Arrays.stream(nums).distinct().toArray();`
 
 ---
 
@@ -318,6 +430,17 @@ public int longestUnique(String s) {
 }
 ```
 Time O(n).
+**Another approach (HashMap of last index — jump left):**
+```java
+Map<Character,Integer> lastSeen = new HashMap<>();
+for (int right = 0; right < s.length(); right++) {
+    char c = s.charAt(right);
+    if (lastSeen.containsKey(c)) left = Math.max(left, lastSeen.get(c) + 1);
+    lastSeen.put(c, right);
+    max = Math.max(max, right - left + 1);
+}
+```
+**Streams:** not suitable — sliding window needs mutable pointers (say this).
 
 ---
 
@@ -339,6 +462,16 @@ public void countVowelsConsonants(String s) {
 }
 ```
 Time O(n).
+**Another approach (regex):**
+```java
+String letters = s.toLowerCase().replaceAll("[^a-z]", "");
+int vowels = letters.replaceAll("[^aeiou]", "").length();
+int consonants = letters.length() - vowels;
+```
+**Streams:**
+```java
+long vowels = s.toLowerCase().chars().filter(c -> "aeiou".indexOf(c) >= 0).count();
+```
 
 ---
 
@@ -358,6 +491,16 @@ public boolean isPrime(int n) {
 }
 ```
 Time O(sqrt(n)).
+**Another approach (count divisors == 2):**
+```java
+long divisors = IntStream.rangeClosed(1, n).filter(i -> n % i == 0).count();
+boolean isPrime = n > 1 && divisors == 2;
+```
+**Streams:**
+```java
+boolean isPrime = n > 1 &&
+    IntStream.rangeClosed(2, (int) Math.sqrt(n)).noneMatch(i -> n % i == 0);
+```
 
 ---
 
@@ -377,6 +520,13 @@ public int reverseNumber(int n) {
 }
 ```
 Handles negatives in Java automatically.
+**Another approach (string reverse then parse):**
+```java
+boolean neg = n < 0;
+String rev = new StringBuilder(String.valueOf(Math.abs(n))).reverse().toString();
+int result = (neg ? -1 : 1) * Integer.parseInt(rev);
+```
+**Streams:** digit math loop is clearer; streams add no value.
 
 ---
 
@@ -400,6 +550,18 @@ public void moveZeros(int[] nums) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (swap non-zeros forward):**
+```java
+int lastNonZero = 0;
+for (int i = 0; i < nums.length; i++)
+    if (nums[i] != 0) { int t = nums[lastNonZero]; nums[lastNonZero++] = nums[i]; nums[i] = t; }
+```
+**Streams (new array, not in-place):**
+```java
+int[] result = IntStream.concat(
+    Arrays.stream(nums).filter(x -> x != 0),
+    Arrays.stream(nums).filter(x -> x == 0)).toArray();
+```
 
 ---
 
@@ -417,6 +579,18 @@ public int missingNumber(int[] nums) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (XOR — avoids overflow):**
+```java
+int xor = nums.length;
+for (int i = 0; i < nums.length; i++) xor ^= i ^ nums[i];
+return xor;
+```
+**Streams:**
+```java
+int expected = IntStream.rangeClosed(0, nums.length).sum();
+int actual = Arrays.stream(nums).sum();
+return expected - actual;
+```
 
 ---
 
@@ -442,6 +616,13 @@ public boolean isValid(String s) {
 }
 ```
 Time O(n).
+**Another approach (repeatedly remove pairs — simple but O(n^2)):**
+```java
+while (s.contains("()") || s.contains("[]") || s.contains("{}"))
+    s = s.replace("()", "").replace("[]", "").replace("{}", "");
+boolean valid = s.isEmpty();
+```
+**Streams:** not suitable — needs a LIFO stack (say this).
 
 ---
 
@@ -463,6 +644,10 @@ public int[] merge(int[] a, int[] b) {
 }
 ```
 Time O(n+m).
+**Another/Streams approach (concat then sort — simpler but O((n+m)log(n+m))):**
+```java
+int[] merged = IntStream.concat(Arrays.stream(a), Arrays.stream(b)).sorted().toArray();
+```
 
 ---
 
@@ -485,6 +670,18 @@ public int mostFrequent(int[] nums) {
 }
 ```
 Time O(n).
+**Another approach (track max while building map):**
+```java
+int result = nums[0], max = 0;
+for (int n : nums) { int c = freq.merge(n, 1, Integer::sum); if (c > max) { max = c; result = n; } }
+```
+**Streams:**
+```java
+int result = Arrays.stream(nums).boxed()
+    .collect(Collectors.groupingBy(n -> n, Collectors.counting()))
+    .entrySet().stream().max(Map.Entry.comparingByValue())
+    .map(Map.Entry::getKey).orElseThrow();
+```
 
 ---
 
@@ -505,6 +702,8 @@ public int digitalRoot(int n) {
     return n;
 }
 ```
+**Another approach (math formula O(1)):** `int root = (n == 0) ? 0 : 1 + (n - 1) % 9;`
+**Streams:** digit-sum loop is clearer; the formula beats both.
 
 ---
 
@@ -524,6 +723,12 @@ public long factorialRec(int n) {
 }
 ```
 Always state the base case.
+**Another approach (BigInteger for large n):**
+```java
+BigInteger f = BigInteger.ONE;
+for (int i = 2; i <= n; i++) f = f.multiply(BigInteger.valueOf(i));
+```
+**Streams:** `long fact = LongStream.rangeClosed(1, n).reduce(1, (a, b) -> a * b);`
 
 ---
 
@@ -557,6 +762,8 @@ private int findBound(int[] nums, int target, boolean findFirst) {
 }
 ```
 Time O(log n).
+**Another approach (linear count O(n)):** `long count = Arrays.stream(nums).filter(x -> x == target).count();`
+**Streams:** same as above; note binary search is O(log n) and faster for sorted data.
 
 ---
 
@@ -576,6 +783,14 @@ public int maxSubArray(int[] nums) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (brute force O(n^2)):**
+```java
+for (int i = 0; i < nums.length; i++) {
+    int sum = 0;
+    for (int j = i; j < nums.length; j++) { sum += nums[j]; max = Math.max(max, sum); }
+}
+```
+**Streams:** not suitable — Kadane needs running carry-forward state (say this).
 
 ---
 
@@ -591,6 +806,8 @@ public void swap(int a, int b) {
     System.out.println("a=" + a + ", b=" + b);
 }
 ```
+**Another approach (XOR):** `a = a ^ b; b = a ^ b; a = a ^ b;`
+**Streams:** N/A (not a collection problem).
 
 ---
 
@@ -605,6 +822,12 @@ public boolean areRotations(String s1, String s2) {
 }
 ```
 Time O(n).
+**Another approach (manual rotate & compare):**
+```java
+for (int i = 0; i < s1.length(); i++)
+    if ((s1.substring(i) + s1.substring(0, i)).equals(s2)) return true;
+```
+**Streams:** the `(s1+s1).contains(s2)` trick is best; streams add nothing.
 
 ---
 
@@ -623,6 +846,8 @@ public int gcd(int a, int b) {
 }
 ```
 LCM follow-up: `a / gcd(a,b) * b`.
+**Another approach (recursive):** `int gcd(int a,int b){ return b==0 ? a : gcd(b, a%b); }`
+**Streams (gcd of an array):** `int g = Arrays.stream(nums).reduce(0, (a, b) -> gcd(a, b));`
 
 ---
 
@@ -643,6 +868,18 @@ public void sortEmployees(List<Employee> employees) {
 }
 ```
 Time O(n log n).
+**Another approach (anonymous Comparator):**
+```java
+employees.sort(new Comparator<Employee>() {
+    public int compare(Employee a, Employee b) { return b.salary - a.salary; }
+});
+```
+**Streams (returns new list):**
+```java
+List<Employee> sorted = employees.stream()
+    .sorted(Comparator.comparingInt((Employee e) -> e.salary).reversed())
+    .collect(Collectors.toList());
+```
 
 ---
 
@@ -658,6 +895,12 @@ public Map<Character, List<String>> groupByFirstLetter(List<String> words) {
 }
 ```
 Pre-Java-8 equivalent: `map.computeIfAbsent(key, k -> new ArrayList<>()).add(w);`
+**Another approach (loop + computeIfAbsent):**
+```java
+Map<Character,List<String>> map = new HashMap<>();
+for (String w : words) map.computeIfAbsent(w.charAt(0), k -> new ArrayList<>()).add(w);
+```
+(The streams version above IS the primary; this is the pre-streams loop.)
 
 ---
 
@@ -681,6 +924,16 @@ public Node reverseList(Node head) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (recursive):**
+```java
+Node reverse(Node head) {
+    if (head == null || head.next == null) return head;
+    Node newHead = reverse(head.next);
+    head.next.next = head; head.next = null;
+    return newHead;
+}
+```
+**Streams:** N/A (linked list pointer manipulation).
 
 ---
 
@@ -699,6 +952,12 @@ public Node findMiddle(Node head) {
 }
 ```
 Same idea detects cycles (Floyd's).
+**Another approach (count then walk half):**
+```java
+int len = 0; for (Node p = head; p != null; p = p.next) len++;
+Node mid = head; for (int i = 0; i < len/2; i++) mid = mid.next;
+```
+**Streams:** N/A (linked list traversal).
 
 ---
 
@@ -719,6 +978,14 @@ public int[] twoSumSorted(int[] nums, int target) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (binary search for complement):**
+```java
+for (int i = 0; i < nums.length; i++) {
+    int idx = Arrays.binarySearch(nums, i+1, nums.length, target - nums[i]);
+    if (idx >= 0) return new int[]{i, idx};
+}
+```
+**Streams:** not ideal (index pairs + early exit).
 
 ---
 
@@ -740,6 +1007,23 @@ public String longestCommonPrefix(String[] strs) {
 }
 ```
 Time O(n * m).
+**Another approach (vertical scanning char by char):**
+```java
+for (int i = 0; i < strs[0].length(); i++) {
+    char c = strs[0].charAt(i);
+    for (String s : strs)
+        if (i == s.length() || s.charAt(i) != c) return strs[0].substring(0, i);
+}
+return strs[0];
+```
+**Streams:**
+```java
+String prefix = Arrays.stream(strs).reduce((a, b) -> {
+    int i = 0;
+    while (i < a.length() && i < b.length() && a.charAt(i) == b.charAt(i)) i++;
+    return a.substring(0, i);
+}).orElse("");
+```
 
 ---
 
@@ -767,6 +1051,12 @@ private void reverse(int[] nums, int start, int end) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (extra array, place at (i+k)%n):**
+```java
+int n = nums.length; int[] result = new int[n];
+for (int i = 0; i < n; i++) result[(i + k) % n] = nums[i];
+```
+**Streams:** not clean for in-place rotation.
 
 ---
 
@@ -797,6 +1087,8 @@ public List<Integer> spiralOrder(int[][] matrix) {
 }
 ```
 Time O(rows*cols).
+**Another approach (direction vectors + turn on boundary):** use `dirs = {{0,1},{1,0},{0,-1},{-1,0}}`, move until out of bounds/visited, then rotate direction.
+**Streams:** N/A (2D traversal with state).
 
 ---
 
@@ -818,6 +1110,19 @@ public int climbStairs(int n) {
 }
 ```
 Time O(n), space O(1).
+**Another approach (recursion + memo):**
+```java
+int climb(int n, int[] memo) {
+    if (n <= 2) return n;
+    if (memo[n] != 0) return memo[n];
+    return memo[n] = climb(n-1, memo) + climb(n-2, memo);
+}
+```
+**Streams:**
+```java
+int ways = Stream.iterate(new int[]{1,2}, f -> new int[]{f[1], f[0]+f[1]})
+    .limit(n - 1).reduce((a, b) -> b).get()[0];
+```
 
 ---
 
@@ -925,5 +1230,31 @@ INdia -> false
 | `INdia` | true | mixed (N up, dia low) | none | false |
 
 **Key methods:** `toCharArray()` (String → char[]), `Character.isUpperCase(c)` (case check).
-**Cleaner alternative:** compare against `country.toUpperCase()`, `toLowerCase()`, and title case with `.equals()`.
+**Another approach (equals against upper/lower/title case):**
+```java
+boolean valid = country.equals(country.toUpperCase())      // INDIA
+             || country.equals(country.toLowerCase())      // india
+             || country.equals(country.substring(0,1).toUpperCase()
+                              + country.substring(1).toLowerCase());  // India
+```
+**Streams (check rest all same case):**
+```java
+boolean firstUpper = Character.isUpperCase(country.charAt(0));
+boolean restLower = country.chars().skip(1).allMatch(Character::isLowerCase);
+boolean restUpper = country.chars().skip(1).allMatch(Character::isUpperCase);
+boolean valid = (firstUpper && (restLower || restUpper)) || (!firstUpper && restLower);
+```
 Time O(n), space O(n) for the char array.
+
+---
+
+# When streams are NOT a good fit (say this in interviews)
+
+Streams shine for **transform / filter / group / reduce** over collections. Avoid them when:
+- You need **index pairs** (Two Sum) — loops are clearer.
+- You need **early exit with running state** (sliding window, Kadane).
+- You need a **stack/queue** (valid parentheses).
+- You do **in-place mutation** (rotate, move zeros).
+- You manipulate **linked-list pointers**.
+
+**Rule of thumb:** stateful/index-driven/in-place → loop. Declarative transform/aggregate → streams.
